@@ -2,50 +2,263 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>🌐 AI Language Translator</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🌐 Advanced AI Language Translator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body>
-  <div class="hero">
-    <div class="translator-card">
-      <h1>🌍 AI Translator</h1>
-      <form method="POST">
-        <textarea name="text" placeholder="Type something to translate..." required>{{ request.form.text }}</textarea>
+<body class="bg-gray-50 font-sans">
+  <div class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <div class="flex items-center justify-center gap-3 mb-2">
+        <i class="fas fa-language text-4xl text-blue-600"></i>
+        <h1 class="text-3xl font-bold text-blue-600">Advanced AI Translator</h1>
+      </div>
+      <p class="text-gray-600">Break language barriers with powerful translation technology</p>
+    </header>
 
-        <div class="dropdowns">
-          <select name="src_lang" required>
-            {% for code, lang in languages.items() %}
-              <option value="{{ code }}" {% if request.form.src_lang == code %}selected{% endif %}>{{ lang }}</option>
-            {% endfor %}
-          </select>
+    <!-- Main Content -->
+    <main class="mb-8">
+      <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <form method="POST" class="space-y-4" id="translationForm">
+          <!-- Input Textarea -->
+          <div class="relative">
+            <textarea name="text" id="inputText" placeholder="Enter text to translate..." required
+              class="w-full min-h-[150px] p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            >{{ input_text }}</textarea>
+            <div class="absolute bottom-3 right-3 text-sm text-gray-500 bg-white/80 px-2 py-1 rounded">
+              <span id="charCount">0</span>/<span>{{ max_chars }}</span>
+            </div>
+          </div>
 
-          <select name="dest_lang" required>
-            {% for code, lang in languages.items() %}
-              <option value="{{ code }}" {% if request.form.dest_lang == code %}selected{% endif %}>{{ lang }}</option>
-            {% endfor %}
-          </select>
+          <!-- Language Selectors -->
+          <div class="flex flex-col md:flex-row items-center gap-4">
+            <div class="w-full md:w-1/3">
+              <label for="src_lang" class="block text-sm font-medium text-gray-700 mb-1">From:</label>
+              <select name="src_lang" id="src_lang" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                <option value="auto" {% if src_lang == 'auto' %}selected{% endif %}>Auto Detect</option>
+                {% for code, lang in languages.items() %}
+                  <option value="{{ code }}" {% if src_lang == code %}selected{% endif %}>{{ lang }} ({{ code }})</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="button" id="swapLanguages" class="bg-gray-100 border border-gray-300 rounded-full w-10 h-10 flex items-center justify-center hover:bg-gray-200 transition-colors md:mt-6">
+              <i class="fas fa-exchange-alt text-blue-600"></i>
+            </button>
+
+            <div class="w-full md:w-1/3">
+              <label for="dest_lang" class="block text-sm font-medium text-gray-700 mb-1">To:</label>
+              <select name="dest_lang" id="dest_lang" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                {% for code, lang in languages.items() %}
+                  <option value="{{ code }}" {% if dest_lang == code %}selected{% endif %}>{{ lang }} ({{ code }})</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+              <i class="fas fa-exchange-alt"></i> Translate
+            </button>
+            <button type="button" id="clearText" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+              <i class="fas fa-trash-alt"></i> Clear
+            </button>
+            <button type="button" id="listenInput" class="bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg flex items-center justify-center gap-2 transition-colors">
+              <i class="fas fa-microphone"></i> Listen
+            </button>
+          </div>
+        </form>
+
+        <!-- Error Message -->
+        {% if error %}
+          <div class="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-r flex items-start gap-3">
+            <i class="fas fa-exclamation-circle text-red-500 mt-1"></i>
+            <p class="text-red-700">{{ error }}</p>
+          </div>
+        {% endif %}
+
+        <!-- Translation Output -->
+        {% if translated_text %}
+          <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-blue-600">Translation Result</h3>
+              <div class="flex gap-2">
+                <button id="copyTranslation" class="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors" title="Copy to clipboard">
+                  <i class="far fa-copy text-gray-600"></i>
+                </button>
+                <button id="listenTranslation" class="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors" title="Listen to translation">
+                  <i class="fas fa-volume-up text-gray-600"></i>
+                </button>
+                <button id="downloadTranslation" class="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors" title="Download as text file">
+                  <i class="fas fa-download text-gray-600"></i>
+                </button>
+              </div>
+            </div>
+            <div id="translatedText" class="bg-gray-50 p-4 rounded-lg whitespace-pre-wrap mb-4">{{ translated_text }}</div>
+            
+            <div class="flex flex-wrap gap-4 text-sm text-gray-500">
+              <span class="flex items-center gap-1">
+                <i class="fas fa-clock"></i> {{ now.strftime('%H:%M') }}
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="fas fa-language"></i> {{ languages.get(src_lang, 'Auto') }} → {{ languages.get(dest_lang, 'Unknown') }}
+              </span>
+              <span class="flex items-center gap-1">
+                <i class="fas fa-ruler-horizontal"></i> {{ translated_text|length }} characters
+              </span>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Features Section -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+          <i class="fas fa-bolt text-3xl text-blue-600 mb-3"></i>
+          <h3 class="text-xl font-semibold mb-2">Fast Translation</h3>
+          <p class="text-gray-600">Get instant translations powered by advanced AI technology</p>
         </div>
-
-        <button class="btn" type="submit">Translate ✨</button>
-      </form>
-
-      {% if translated_text %}
-        <div class="output-box">
-          <h3>Translated Output:</h3>
-          <p id="translatedText">{{ translated_text }}</p>
-          <button onclick="copyText()" class="copy-btn">📋 Copy</button>
+        <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+          <i class="fas fa-globe text-3xl text-blue-600 mb-3"></i>
+          <h3 class="text-xl font-semibold mb-2">100+ Languages</h3>
+          <p class="text-gray-600">Supports translation between numerous languages and dialects</p>
         </div>
-      {% endif %}
-    </div>
+        <div class="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+          <i class="fas fa-text-height text-3xl text-blue-600 mb-3"></i>
+          <h3 class="text-xl font-semibold mb-2">Text Processing</h3>
+          <p class="text-gray-600">Handles up to 5000 characters with accurate punctuation</p>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="text-center text-gray-500 text-sm">
+      <p>© {{ now.year }} Advanced AI Translator. All rights reserved.</p>
+      <div class="flex justify-center gap-4 mt-2">
+        <a href="#" class="hover:text-blue-600 transition-colors">Privacy Policy</a>
+        <a href="#" class="hover:text-blue-600 transition-colors">Terms of Service</a>
+        <a href="#" class="hover:text-blue-600 transition-colors">Contact Us</a>
+      </div>
+    </footer>
   </div>
 
   <script>
-    function copyText() {
-      const text = document.getElementById('translatedText').innerText;
-      navigator.clipboard.writeText(text);
-      alert("✅ Text copied!");
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+      const inputText = document.getElementById('inputText');
+      const charCount = document.getElementById('charCount');
+      const maxChars = {{ max_chars }};
+      const swapBtn = document.getElementById('swapLanguages');
+      const clearBtn = document.getElementById('clearText');
+      const copyBtn = document.getElementById('copyTranslation');
+      const listenInputBtn = document.getElementById('listenInput');
+      const listenOutputBtn = document.getElementById('listenTranslation');
+      const downloadBtn = document.getElementById('downloadTranslation');
+      
+      // Character counter
+      inputText.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = count;
+        charCount.className = count > maxChars ? 
+          'absolute bottom-3 right-3 text-sm text-red-500 bg-white/80 px-2 py-1 rounded' : 
+          'absolute bottom-3 right-3 text-sm text-gray-500 bg-white/80 px-2 py-1 rounded';
+      });
+      
+      // Swap languages
+      swapBtn.addEventListener('click', function() {
+        const srcLang = document.getElementById('src_lang');
+        const destLang = document.getElementById('dest_lang');
+        const srcValue = srcLang.value;
+        
+        // Don't swap if source is auto
+        if (srcValue === 'auto') return;
+        
+        srcLang.value = destLang.value;
+        destLang.value = srcValue;
+      });
+      
+      // Clear text
+      clearBtn.addEventListener('click', function() {
+        inputText.value = '';
+        charCount.textContent = '0';
+        charCount.className = 'absolute bottom-3 right-3 text-sm text-gray-500 bg-white/80 px-2 py-1 rounded';
+      });
+      
+      // Copy translation
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          const translatedText = document.getElementById('translatedText').textContent;
+          navigator.clipboard.writeText(translatedText)
+            .then(() => {
+              const icon = this.querySelector('i');
+              icon.className = 'fas fa-check text-green-500';
+              setTimeout(() => {
+                icon.className = 'far fa-copy text-gray-600';
+              }, 2000);
+            });
+        });
+      }
+      
+      // Text-to-speech for input
+      if (listenInputBtn) {
+        listenInputBtn.addEventListener('click', function() {
+          const text = inputText.value;
+          if (text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            const srcLang = document.getElementById('src_lang').value;
+            utterance.lang = srcLang === 'auto' ? 'en' : srcLang;
+            window.speechSynthesis.speak(utterance);
+          }
+        });
+      }
+      
+      // Text-to-speech for output
+      if (listenOutputBtn) {
+        listenOutputBtn.addEventListener('click', function() {
+          const text = document.getElementById('translatedText').textContent;
+          if (text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            const destLang = document.getElementById('dest_lang').value;
+            utterance.lang = destLang;
+            window.speechSynthesis.speak(utterance);
+          }
+        });
+      }
+      
+      // Download translation
+      if (downloadBtn) {
+        downloadBtn.addEventListener('click', function() {
+          const text = document.getElementById('translatedText').textContent;
+          const srcLang = document.getElementById('src_lang').value;
+          const destLang = document.getElementById('dest_lang').value;
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const filename = `translation_${srcLang}_to_${destLang}_${timestamp}.txt`;
+          
+          const blob = new Blob([text], { type: 'text/plain' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        });
+      }
+      
+      // Auto-resize textarea
+      inputText.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+      });
+      
+      // Initialize character count
+      if (inputText.value) {
+        charCount.textContent = inputText.value.length;
+      }
+    });
   </script>
 </body>
 </html>
