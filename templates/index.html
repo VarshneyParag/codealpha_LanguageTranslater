@@ -1,1 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🌐 AI Language Translator</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="hero">
+    <div class="translator-card">
+      <h1>🌍 AI Translator</h1>
+      <form method="POST">
+        <textarea name="text" placeholder="Type something to translate..." required>{{ request.form.text }}</textarea>
 
+        <div class="dropdowns">
+          <select name="src_lang" required>
+            {% for code, lang in languages.items() %}
+              <option value="{{ code }}" {% if request.form.src_lang == code %}selected{% endif %}>{{ lang }}</option>
+            {% endfor %}
+          </select>
+
+          <select name="dest_lang" required>
+            {% for code, lang in languages.items() %}
+              <option value="{{ code }}" {% if request.form.dest_lang == code %}selected{% endif %}>{{ lang }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <button class="btn" type="submit">Translate ✨</button>
+      </form>
+
+      {% if translated_text %}
+        <div class="output-box">
+          <h3>Translated Output:</h3>
+          <p id="translatedText">{{ translated_text }}</p>
+          <button onclick="copyText()" class="copy-btn">📋 Copy</button>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script>
+    function copyText() {
+      const text = document.getElementById('translatedText').innerText;
+      navigator.clipboard.writeText(text);
+      alert("✅ Text copied!");
+    }
+  </script>
+</body>
+</html>
