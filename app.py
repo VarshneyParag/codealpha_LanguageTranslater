@@ -3,8 +3,8 @@ from deep_translator import GoogleTranslator
 
 app = Flask(__name__)
 
-# List of languages supported by GoogleTranslator
-SUPPORTED_LANGUAGES = GoogleTranslator.get_supported_languages(as_dict=True)
+translator = GoogleTranslator(source='auto', target='en')
+SUPPORTED_LANGUAGES = translator.get_supported_languages(as_dict=True)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
